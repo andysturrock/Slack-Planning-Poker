@@ -22,7 +22,9 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   try {
-    const blocks = createModalBlocks(event.text, ["1", "2", ":smile:"]);
+    // Use Fibonacci series as default.
+    const defaultScores = ["0", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89", "144"];
+    const blocks = createModalBlocks(event.text, defaultScores);
     const modalView: ModalView = {
       type: "modal",
       title: {
@@ -98,6 +100,7 @@ function createModalBlocks(title: string, scores: string[]) {
     block_id: "scores",
     element: {
       type: 'plain_text_input',
+      action_id: "scores_text",
       placeholder: {
         type: 'plain_text',
         text: 'Enter scores separated by space',

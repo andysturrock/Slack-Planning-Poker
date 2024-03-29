@@ -82,6 +82,12 @@ function getParticipants(viewOutput: ViewOutput) {
   return value;
 }
 
+function getScores(viewOutput: ViewOutput) {
+  const titleViewStateValue = viewOutput.state.values["scores"];
+  const value = titleViewStateValue["scores_text"].value;
+  return value?.split("+");
+}
+
 function createPlanningPokerText(title: string, participants: string[]) {
   const votesText = participants.map((participant) => `<@${participant}>: awaiting`).join("\n");
   return `Title: *${title}*\n\nVotes:\n${votesText}`;
@@ -137,27 +143,38 @@ function createPlanningPokerBlocks(sessionState: SessionState) {
   };
   blocks.push(contextBlock);
 
-  const elements = sessionState.scores.map((score) => {
-    const plainTextElement: PlainTextElement = {
-      type: "plain_text",
-      text: `${score}`,
-      emoji: true
+  // Chunk the scores into arrays of length 5 so
+  // the score buttons fit on the message properly.
+  // Also remove duplicates.
+  function chunk(arr: string[], size: number) {
+    const chunks = Array.from({length: Math.ceil(arr.length / size)}, (v, i) =>
+      arr.slice(i * size, i * size + size)
+    );
+    return [...new Set(chunks)];
+  }
+  const scoresChunks = chunk(sessionState.scores, 5);
+  for(let scoresChunkIndex = 0; scoresChunkIndex < scoresChunks.length; ++scoresChunkIndex) {
+    const elements = scoresChunks[scoresChunkIndex].map((score) => {
+      const plainTextElement: PlainTextElement = {
+        type: "plain_text",
+        text: `${score}`,
+        emoji: true
+      };
+      const button: Button = {
+        type: "button",
+        text: plainTextElement,
+        value: score,
+        action_id: `${sessionState.sessionId}:${score}`
+      };
+      return button;
+    });
+    const actionsBlock: ActionsBlock = {
+      type: 'actions',
+      block_id: `voting_buttons:${scoresChunkIndex}`,
+      elements
     };
-    const button: Button = {
-      type: "button",
-      text: plainTextElement,
-      value: score,
-      action_id: `${sessionState.sessionId}:${score}`
-    };
-    return button;
-  });
-  
-  const actionsBlock: ActionsBlock = {
-    type: 'actions',
-    block_id: "voting_buttons",
-    elements
-  };
-  blocks.push(actionsBlock);
+    blocks.push(actionsBlock);
+  }
 
   return blocks;
 }
@@ -219,12 +236,13 @@ function createPlanningPokerResultBlocks(sessionState: SessionState) {
 async function handleViewSubmission(viewSubmitAction: ViewSubmitAction) {
   const title = getTitle(viewSubmitAction.view) || "";
   const participants = getParticipants(viewSubmitAction.view);
-  // Only show the voting message if there are some participants.
-  if(participants && participants.length > 0) {
+  const scores = getScores(viewSubmitAction.view);
+  // Only show the voting message if there are some participants and scores
+  if(participants && participants.length > 0 && scores && scores.length > 0) {
     const sessionId = nanoid();
     const channelId = viewSubmitAction.view.private_metadata;
     const text = createPlanningPokerText(title, participants);
-    const scores = ["1", "2", ":smile:"];
+
     const sessionState: SessionState = {
       sessionId,
       ts: "",
@@ -246,7 +264,7 @@ async function handleViewSubmission(viewSubmitAction: ViewSubmitAction) {
 }
 
 async function handleBlockAction(blockAction: BlockAction) {
-  if(blockAction.actions[0].type === "button" && blockAction.actions[0].block_id === "voting_buttons") {
+  if(blockAction.actions[0].type === "button" && blockAction.actions[0].block_id.match(/voting_buttons:\d+/)) {
     const buttonAction: ButtonAction = blockAction.actions[0];
     const vote = buttonAction.value;
     const sessionId = buttonAction.action_id.split(":")[0];
