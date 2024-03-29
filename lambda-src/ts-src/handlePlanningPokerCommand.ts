@@ -106,7 +106,7 @@ function createModalBlocks(title: string, scores: string[]) {
     },
     label: {
       type: 'plain_text',
-      text: 'Score',
+      text: 'Scores',
     },
     hint: {
       type: 'plain_text',

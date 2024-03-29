@@ -79,7 +79,7 @@ export class LambdaStack extends Stack {
     props.planningPokerSecret.grantRead(handleInteractiveEndpointLambda);
     props.planningPokerSecret.grantWrite(handleInteractiveEndpointLambda);
     // Allow access to the DynamoDB table
-    props.sessionStateTable.grantReadData(handleInteractiveEndpointLambda);
+    props.sessionStateTable.grantReadWriteData(handleInteractiveEndpointLambda);
 
     // Create the lambda which creates the modal dialog.
     // This lambda is called from the initial response lambda, not via the API Gateway.

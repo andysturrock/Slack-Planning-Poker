@@ -1,6 +1,12 @@
 
 import {DynamoDBClient, PutItemCommand, PutItemCommandInput, QueryCommand, QueryCommandInput, DeleteItemCommand, DeleteItemCommandInput} from '@aws-sdk/client-dynamodb';
 
+// The very useful TTL functionality in DynamoDB means we
+// can set a TTL on storing the session state.
+// This means that if there is an exception thrown etc and
+// we end up with an orphan session state then it will get
+// cleared down automatically after some period.
+const TTL_IN_MS = 1000 * 60 * 60 * 24 * 7;  // 7 Days
 const TableName = "PlanningPoker_SessionState";
 
 /**
@@ -10,6 +16,7 @@ export type SessionState = {
   sessionId: string,
   ts: string,
   title: string,
+  organiserUserId: string,
   scores: string[],
   channelId: string,
   /**
@@ -69,11 +76,15 @@ export async function deleteState(sessionId: string) {
  * @param sessionState JSON value
  */
 export async function putState(sessionState: SessionState) {
+  const now = Date.now();
+  const ttl = new Date(now + TTL_IN_MS);
+
   const putItemCommandInput: PutItemCommandInput = {
     TableName,
     Item: {
       session_id: {S: sessionState.sessionId},
-      state: {S: JSON.stringify(sessionState)}
+      state: {S: JSON.stringify(sessionState)},
+      ttl: {N: `${Math.floor(ttl.getTime() / 1000)}`}
     }
   };
 
