@@ -22,7 +22,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   try {
-    const blocks = createModalBlocks(event.text);
+    const blocks = createModalBlocks(event.text, ["1", "2", ":smile:"]);
     const modalView: ModalView = {
       type: "modal",
       title: {
@@ -49,7 +49,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 }
 
-function createModalBlocks(title: string) {
+function createModalBlocks(title: string, scores: string[]) {
   const blocks: KnownBlock[] = [];
   let inputBlock: InputBlock = {
     type: "input",
@@ -89,6 +89,29 @@ function createModalBlocks(title: string) {
       initial_users: [],
     },
     optional: false
+  };
+  blocks.push(inputBlock);
+
+  const initial_value = scores.join(' ');
+  inputBlock = {
+    type: "input",
+    block_id: "scores",
+    element: {
+      type: 'plain_text_input',
+      placeholder: {
+        type: 'plain_text',
+        text: 'Enter scores separated by space',
+      },
+      initial_value
+    },
+    label: {
+      type: 'plain_text',
+      text: 'Score',
+    },
+    hint: {
+      type: 'plain_text',
+      text: 'Enter scores separated by space',
+    },
   };
   blocks.push(inputBlock);
 

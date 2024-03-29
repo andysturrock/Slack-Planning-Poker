@@ -2,8 +2,10 @@ import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {verifySlackRequest} from './verifySlackRequest';
 import {getSecretValue} from './awsAPI';
 import util from 'util';
-import {HeaderBlock, KnownBlock, ViewSubmitAction, ViewOutput, ViewStateValue} from "@slack/bolt";
+import {KnownBlock, ViewSubmitAction, ViewOutput, ContextBlock, MrkdwnElement, SectionBlock, PlainTextElement, Button, ActionsBlock, BlockAction, ButtonAction} from "@slack/bolt";
 import {postMessage} from "./slackAPI";
+import {nanoid} from 'nanoid';
+import {SessionState, getState, putState} from "./sessionStateTable";
 
 /**
  * Handle the interaction posts from Slack.
@@ -36,16 +38,46 @@ export async function handleInteractiveEndpoint(event: APIGatewayProxyEvent): Pr
     switch(payload.type) {
     case "view_submission": {
       const viewSubmitAction: ViewSubmitAction = payload as ViewSubmitAction;
-      const title = getTitle(viewSubmitAction.view);
-      const blocks = createPlanningPokerBlocks(title || "");
+      const title = getTitle(viewSubmitAction.view) || "";
       const participants = getParticipants(viewSubmitAction.view);
+      // Only show the voting message if there are some participants.
       if(participants && participants.length > 0) {
-        const participantsText = participants.map((participant) => {return `<@${participant}>: awaiting`;});
-        const text = `Votes\n${participantsText.join('/n')}`;
-        const attachments = undefined;
-        await postMessage(viewSubmitAction.view.private_metadata, text, blocks, undefined, attachments);
+        const sessionId = nanoid();
+        const channelId = viewSubmitAction.view.private_metadata;
+        const text = createPlanningPokerText(title, participants);
+        const scores = ["1", "2", ":smile:"];
+        const blocks = createPlanningPokerBlocks(sessionId, viewSubmitAction.user.id, title, participants, scores);
+        const ts = await postMessage(channelId, text, blocks, undefined);
+        if(!ts) {
+          throw new Error("Failed to get ts when posting message.");
+        }
+        const sessionState: SessionState = {
+          sessionId,
+          ts,
+          title,
+          scores,
+          channelId,
+          participants,
+          votes: {}
+        };
+        await putState(sessionState);
       }
-
+      break;
+    }
+    case "block_actions": {
+      const blockAction: BlockAction = payload as BlockAction;
+      if(blockAction.actions[0].type === "button" && blockAction.actions[0].block_id === "voting_buttons") {
+        const buttonAction: ButtonAction = blockAction.actions[0];
+        const vote = buttonAction.value;
+        const sessionId = buttonAction.action_id;
+        console.log(`User ${blockAction.user.id} voted for ${vote} in session ${sessionId}`);
+        const sessionState = await getState(sessionId);
+        if(!sessionState) {
+          throw new Error(`Failed to get state for session id ${sessionId}`);
+        }
+        sessionState.votes[blockAction.user.id] = vote;
+        await putState(sessionState);
+      }
       break;
     }
     
@@ -53,6 +85,7 @@ export async function handleInteractiveEndpoint(event: APIGatewayProxyEvent): Pr
       break;
     }
 
+    // Empty 200 tells Slack to close the dialog view if this was a view_submission event.
     const result: APIGatewayProxyResult = {
       body: "",
       statusCode: 200
@@ -83,16 +116,75 @@ function getParticipants(viewOutput: ViewOutput) {
   return value;
 }
 
-function createPlanningPokerBlocks(title: string) {
+function createPlanningPokerText(title: string, participants: string[]) {
+  const votesText = participants.map((participant) => `<@${participant}>: awaiting`).join("\n");
+  return `Title: *${title}*\n\nVotes:\n${votesText}`;
+}
+
+function createPlanningPokerBlocks(sessionId: string, userId: string, title: string, participants: string[], scores: string[]) {
   const blocks: KnownBlock[] = [];
 
-  const headerBlock: HeaderBlock = {
-    type: "header",
+  let sectionBlock: SectionBlock = {
+    type: "section",
+    block_id: "overall_heading",
     text: {
-      type: 'plain_text',
+      type: "mrkdwn",
+      text: `<@${userId}> has started a planning poker session.`
+    }
+  };
+  blocks.push(sectionBlock);
+  sectionBlock = {
+    type: "section",
+    block_id: "title",
+    text: {
+      type: "mrkdwn",
       text: `Title: *${title}*`
     }
   };
-  blocks.push(headerBlock);
+  blocks.push(sectionBlock);
+  sectionBlock = {
+    type: "section",
+    block_id: "votes_heading",
+    text: {
+      type: "mrkdwn",
+      text: `Votes:`
+    }
+  };
+  blocks.push(sectionBlock);
+
+  const element: MrkdwnElement = {
+    type: "mrkdwn",
+    text: participants.map((participant) => `<@${participant}>: awaiting`).join("\n")
+  };
+  const contextBlock: ContextBlock = {
+    type: "context",
+    block_id: "votes",
+    elements: [element]
+  };
+  blocks.push(contextBlock);
+
+  const elements = scores.map((score) => {
+    const plainTextElement: PlainTextElement = {
+      type: "plain_text",
+      text: `${score} :coffee:`,
+      emoji: true
+    };
+    const button: Button = {
+      type: "button",
+      text: plainTextElement,
+      value: score,
+      action_id: `${sessionId}`
+    };
+    return button;
+  });
+  
+  const actionsBlock: ActionsBlock = {
+    type: 'actions',
+    block_id: "voting_buttons",
+    elements
+  };
+  blocks.push(actionsBlock);
+
   return blocks;
 }
+

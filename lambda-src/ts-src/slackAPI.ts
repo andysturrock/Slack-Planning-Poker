@@ -1,5 +1,5 @@
 import {WebClient, LogLevel, ViewsOpenArguments, OAuthV2AccessArguments} from "@slack/web-api";
-import {Block, KnownBlock, MessageAttachment, ModalView} from "@slack/bolt";
+import {Block, KnownBlock, ModalView} from "@slack/bolt";
 import {getSecretValue, putSecretValue} from "./awsAPI";
 import axios from "axios";
 
@@ -37,22 +37,31 @@ export async function refreshToken() {
 
 async function createClient() {
   const slackBotAccessToken = await refreshToken();
-  console.log(`createClient slackBotAccessToken = ${slackBotAccessToken}`);
-
   return new WebClient(slackBotAccessToken, {
     logLevel: LogLevel.INFO
   });
 }
 
-export async function postMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], thread_ts?: string, attachments?: MessageAttachment[]) {
+export async function postMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], thread_ts?: string) {
   const client = await createClient();
-  await client.chat.postMessage({
+  const chatPostMessageResponse = await client.chat.postMessage({
     channel: channelId,
     text,
     blocks,
-    thread_ts,
-    attachments
+    thread_ts
   });
+  return chatPostMessageResponse.ts;
+}
+
+export async function updateMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], ts: string) {
+  const client = await createClient();
+  const chatPostMessageResponse = await client.chat.update({
+    channel: channelId,
+    ts,
+    text,
+    blocks,
+  });
+  return chatPostMessageResponse.ts;
 }
 
 export async function postEphemeralMessage(channelId: string, userId: string, text:string, blocks: (KnownBlock | Block)[]) {

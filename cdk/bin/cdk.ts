@@ -27,7 +27,7 @@ const dynamoDBStack = new DynamoDBStack(app, 'PlanningPokerDynamoDBStack', {
 new LambdaStack(app, 'PlanningPokerLambdaStack', {
   env: {region},
   planningPokerSecret: secretsManagerStack.planningPokerSecret,
-  configTable: dynamoDBStack.configTable,
+  sessionStateTable: dynamoDBStack.sessionStateTable,
   lambdaVersion,
   customDomainName,
   planningPokerDomainName: planningPokerDomainName,

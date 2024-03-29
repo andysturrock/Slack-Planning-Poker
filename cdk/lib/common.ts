@@ -24,7 +24,7 @@ export function getEnv(name: string, optional = false): string | undefined {
 
 export interface LambdaStackProps extends StackProps {
   readonly planningPokerSecret: secretsmanager.ISecret;
-  readonly configTable: dynamodb.Table;
+  readonly sessionStateTable: dynamodb.Table;
   readonly lambdaVersion: string;
   readonly customDomainName: string;
   readonly planningPokerDomainName: string;
