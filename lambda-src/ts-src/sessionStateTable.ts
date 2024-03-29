@@ -1,5 +1,5 @@
 
-import {DynamoDBClient, PutItemCommand, PutItemCommandInput, QueryCommand, QueryCommandInput, DeleteItemCommand, DeleteItemCommandInput} from '@aws-sdk/client-dynamodb';
+import {DynamoDBClient, PutItemCommand, PutItemCommandInput, QueryCommand, QueryCommandInput, DeleteItemCommand, DeleteItemCommandInput, ScanCommandInput, ScanCommand} from '@aws-sdk/client-dynamodb';
 
 // The very useful TTL functionality in DynamoDB means we
 // can set a TTL on storing the session state.
@@ -28,6 +28,33 @@ export type SessionState = {
    */
   votes: { [key: string]: string };
 };
+
+/**
+ * Get all current session states
+ * @returns All the current session states
+ */
+export async function getStates() : Promise<SessionState[]>  { 
+  const ddbClient = new DynamoDBClient({});
+
+  const params: ScanCommandInput = {
+    TableName
+  };
+  const data = await ddbClient.send(new ScanCommand(params));
+  const sessionStates: SessionState[] = [];
+  const items = data.Items;
+  if(items) {
+    for(const item of items) {
+      if(item.state && item.state.S) {
+        const sessionState = JSON.parse(item.state.S) as SessionState;
+        sessionStates.push(sessionState);
+      }
+    }
+    return sessionStates;
+  }
+  else {
+    return [];
+  }
+}
 
 /**
  * Gets the state for the given id.

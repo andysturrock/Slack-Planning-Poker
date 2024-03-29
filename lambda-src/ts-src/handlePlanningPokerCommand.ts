@@ -1,6 +1,7 @@
 import {openView, postErrorMessageToResponseUrl, postToResponseUrl} from './slackAPI';
 import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
 import util from 'util';
+import {getStates} from './sessionStateTable';
 
 /**
  * Create the modal dialog
@@ -10,14 +11,32 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   console.log(`event: ${util.inspect(event)}`);
 
   if(event.text === "help") {
+    const usage = "Usage: /planningpoker [session name][list]";
     const sectionBlock: SectionBlock = {
       type: 'section',
       text: {
         type: "mrkdwn",
-        text: "Usage: /planningpoker [session name]"
+        text: usage
       }
     };
-    await postToResponseUrl(event.response_url, "ephemeral", "Usage: /planningpoker [session name]", [sectionBlock]);
+    await postToResponseUrl(event.response_url, "ephemeral", usage, [sectionBlock]);
+    return;
+  }
+
+  if(event.text === "list") {
+    const sessionStates = await getStates();
+    const blocks: KnownBlock[] = [];
+    for(let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
+      const sectionBlock: SectionBlock = {
+        type: 'section',
+        text: {
+          type: "mrkdwn",
+          text: `${sessionStateIndex}: ${sessionStates[sessionStateIndex].title}`
+        }
+      };
+      blocks.push(sectionBlock);
+    }
+    await postToResponseUrl(event.response_url, "ephemeral", "Active Planning Poker sessions", blocks);
     return;
   }
 

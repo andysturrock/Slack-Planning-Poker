@@ -101,6 +101,8 @@ export class LambdaStack extends Stack {
     // Allow read/write access to the secret it needs
     props.planningPokerSecret.grantRead(handlePlanningPokerCommandLambda);
     props.planningPokerSecret.grantWrite(handlePlanningPokerCommandLambda);
+    // Allow read access to the DynamoDB table
+    props.sessionStateTable.grantReadData(handlePlanningPokerCommandLambda);
 
     // Get hold of the hosted zone which has previously been created
     const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {
