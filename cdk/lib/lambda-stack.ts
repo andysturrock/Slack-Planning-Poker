@@ -81,7 +81,7 @@ export class LambdaStack extends Stack {
     // Allow access to the DynamoDB table
     props.sessionStateTable.grantReadWriteData(handleInteractiveEndpointLambda);
 
-    // Create the lambda which creates the modal dialog.
+    // Create the lambda which creates the modal dialog and handles other commands (eg list, show).
     // This lambda is called from the initial response lambda, not via the API Gateway.
     const handlePlanningPokerCommandLambda = new lambda.Function(this, "handlePlanningPokerCommandLambda", {
       handler: "handlePlanningPokerCommand.handlePlanningPokerCommand",
@@ -101,8 +101,8 @@ export class LambdaStack extends Stack {
     // Allow read/write access to the secret it needs
     props.planningPokerSecret.grantRead(handlePlanningPokerCommandLambda);
     props.planningPokerSecret.grantWrite(handlePlanningPokerCommandLambda);
-    // Allow read access to the DynamoDB table
-    props.sessionStateTable.grantReadData(handlePlanningPokerCommandLambda);
+    // Allow access to the DynamoDB table
+    props.sessionStateTable.grantReadWriteData(handlePlanningPokerCommandLambda);
 
     // Get hold of the hosted zone which has previously been created
     const zone = route53.HostedZone.fromHostedZoneAttributes(this, 'R53Zone', {

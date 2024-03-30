@@ -1,7 +1,8 @@
-import {openView, postErrorMessageToResponseUrl, postToResponseUrl} from './slackAPI';
+import {deleteMessage, openView, postErrorMessageToResponseUrl, postToResponseUrl} from './slackAPI';
 import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
 import util from 'util';
 import {getStates} from './sessionStateTable';
+import {showSessionView} from './sessionView';
 
 /**
  * Create the modal dialog
@@ -24,7 +25,10 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   if(event.text === "list") {
-    const sessionStates = await getStates();
+    let sessionStates = await getStates();
+    // Only show sessions from this channel.
+    // TODO This is not very efficient.  Should add secondary index on channelId in the database.
+    sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
     const blocks: KnownBlock[] = [];
     for(let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
       const sectionBlock: SectionBlock = {
@@ -40,10 +44,40 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     return;
   }
 
+  // Eg show 12
+  if(event.text.match(/^show\s+\d+/)) {
+    const sessionStateMatch = event.text.match(/\d+/);
+    if(!sessionStateMatch) {
+      throw new Error("Logic error");
+    }
+    const sessionStateIndex = parseInt(sessionStateMatch[0]);
+    let sessionStates = await getStates();
+    // TODO see above
+    sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
+    if(sessionStateIndex < 0 || sessionStateIndex > sessionStates.length - 1) {
+      await postErrorMessageToResponseUrl(event.response_url, `Number must be between 0 and ${sessionStates.length - 1}`);
+      return;
+    }
+    const sessionState = sessionStates[sessionStateIndex];
+    // Delete the old message so we don't have a duplicate
+    try {
+      await deleteMessage(sessionState.channelId, sessionState.ts);
+    }
+    catch (error) {
+      // Someone might have deleted the old message already, eg by using the "Delete message..." menu in the Slack UI.
+      // So don't worry about this.  Just log at warn level in case we've got into some weird situation and want to debug.
+      console.warn(error);
+    }
+    // And create a new message which will be the newest message in the channel
+    await showSessionView(sessionState);
+    return;
+  }
+
+  // The main command.  Create a dialog to set the options.  Submitting will create a new session.
   try {
     // Use Fibonacci series as default.
     const defaultScores = ["0", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89", "144"];
-    const blocks = createModalBlocks(event.text, defaultScores);
+    const blocks = createModalBlocks(event.text, defaultScores, event.user_id);
     const modalView: ModalView = {
       type: "modal",
       title: {
@@ -70,7 +104,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 }
 
-function createModalBlocks(title: string, scores: string[]) {
+function createModalBlocks(title: string, scores: string[], userId: string) {
   const blocks: KnownBlock[] = [];
   let inputBlock: InputBlock = {
     type: "input",
@@ -107,7 +141,7 @@ function createModalBlocks(title: string, scores: string[]) {
         type: "plain_text",
         text: "Participant names"
       },
-      initial_users: [],
+      initial_users: [userId],
     },
     optional: false
   };

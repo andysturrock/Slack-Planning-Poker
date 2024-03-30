@@ -55,13 +55,22 @@ export async function postMessage(channelId: string, text:string, blocks: (Known
 
 export async function updateMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], ts: string) {
   const client = await createClient();
-  const chatPostMessageResponse = await client.chat.update({
+  const chatUpdateResponse = await client.chat.update({
     channel: channelId,
     ts,
     text,
     blocks,
   });
-  return chatPostMessageResponse.ts;
+  return chatUpdateResponse.ts;
+}
+
+export async function deleteMessage(channelId: string, ts: string) {
+  const client = await createClient();
+  const chatDeleteResponse = await client.chat.delete({
+    channel: channelId,
+    ts
+  });
+  return chatDeleteResponse.ts;
 }
 
 export async function postEphemeralMessage(channelId: string, userId: string, text:string, blocks: (KnownBlock | Block)[]) {
@@ -128,40 +137,3 @@ export type PlanningPokerCommandPayload = {
   event_ts?: string
 };
 
-// export type Action = {
-//   action_id: string,
-//   value: string
-// };
-
-// export type InteractionPayload = {
-//   type: string,
-//   user: {
-//     id: string,
-//     username: string,
-//     name: string,
-//     team_id: string,
-//   },
-//   container: {
-//     type: string,
-//     message_ts: string,
-//     channel_id: string,
-//     is_ephemeral: boolean
-//   },
-//   team: {
-//     id: string,
-//     domain: string
-//   },
-//   channel: {
-//     id: string,
-//     name: string,
-//   },
-//   message: {
-//     type: 'message',
-//     subtype: string,
-//     text: string,
-//     ts: string,
-//     bot_id: string,
-//   },
-//   response_url: string,
-//   actions: Action[]
-// };
