@@ -1,7 +1,7 @@
-import {deleteMessage, openView, postErrorMessageToResponseUrl, postToResponseUrl} from './slackAPI';
+import {deleteMessage, openView, postErrorMessageToResponseUrl, postMessage, postToResponseUrl} from './slackAPI';
 import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
 import util from 'util';
-import {getStates} from './sessionStateTable';
+import {deleteState, getStates} from './sessionStateTable';
 import {showSessionView} from './sessionView';
 
 /**
@@ -51,19 +51,10 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
 
   // Eg show 12
   if(event.text.match(/^show\s+\d+/)) {
-    const sessionStateMatch = event.text.match(/\d+/);
-    if(!sessionStateMatch) {
-      throw new Error("Logic error");
-    }
-    const sessionStateIndex = parseInt(sessionStateMatch[0]);
-    let sessionStates = await getStates();
-    // TODO see above
-    sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
-    if(sessionStateIndex < 0 || sessionStateIndex > sessionStates.length - 1) {
-      await postErrorMessageToResponseUrl(event.response_url, `Number must be between 0 and ${sessionStates.length - 1}`);
+    const sessionState = await getSessionStateFromArgument(event.text);
+    if(!sessionState) {
       return;
     }
-    const sessionState = sessionStates[sessionStateIndex];
     // Delete the old message so we don't have a duplicate
     try {
       await deleteMessage(sessionState.channelId, sessionState.ts);
@@ -76,6 +67,42 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     // And create a new message which will be the newest message in the channel
     await showSessionView(sessionState);
     return;
+  }
+
+  // Eg cancel 12
+  if(event.text.match(/^cancel\s+\d+/)) {
+    const sessionState = await getSessionStateFromArgument(event.text);
+    if(!sessionState) {
+      return;
+    }
+    // Delete the old message so we don't have a duplicate
+    try {
+      await deleteMessage(sessionState.channelId, sessionState.ts);
+    }
+    catch (error) {
+      // See above
+      console.warn(error);
+    }
+    await deleteState(sessionState.sessionId);
+    await postMessage(event.channel_id, `<@${event.user_id}> cancelled the Planning Poker session ${sessionState.title}`, []);
+    return;
+  }
+
+  // Define locally here so we have access to the event.
+  async function getSessionStateFromArgument(argument: string) {
+    const sessionStateMatch = argument.match(/\d+/);
+    if(!sessionStateMatch) {
+      throw new Error("Logic error");
+    }
+    const sessionStateIndex = parseInt(sessionStateMatch[0]);
+    let sessionStates = await getStates();
+    // TODO see above
+    sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
+    if(sessionStateIndex < 0 || sessionStateIndex > sessionStates.length - 1) {
+      await postErrorMessageToResponseUrl(event.response_url, `Number must be between 0 and ${sessionStates.length - 1}`);
+      return undefined;
+    }
+    return sessionStates[sessionStateIndex];
   }
 
   // The main command.  Create a dialog to set the options.  Submitting will create a new session.
