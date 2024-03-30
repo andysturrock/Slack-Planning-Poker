@@ -2,11 +2,11 @@ import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {verifySlackRequest} from './verifySlackRequest';
 import {getSecretValue} from './awsAPI';
 import util from 'util';
-import {KnownBlock, ViewSubmitAction, ViewOutput, ContextBlock, MrkdwnElement, SectionBlock, BlockAction, ButtonAction} from "@slack/bolt";
+import {ViewSubmitAction, ViewOutput, BlockAction, ButtonAction} from "@slack/bolt";
 import {postEphmeralErrorMessage, updateMessage} from "./slackAPI";
 import {nanoid} from 'nanoid';
 import {SessionState, deleteState, getState} from "./sessionStateTable";
-import {showSessionView, updateSessionView} from "./sessionView";
+import {createPlanningPokerResultBlocks, showSessionView, updateSessionView} from "./sessionView";
 
 /**
  * Handle the interaction posts from Slack.
@@ -121,7 +121,7 @@ async function handleBlockAction(blockAction: BlockAction) {
     if(voted.length == sessionState.participants.length) {
       await deleteState(sessionState.sessionId);
       const resultBlocks = createPlanningPokerResultBlocks(sessionState);
-      await updateMessage(sessionState.channelId, `Planning Poker results for ${sessionState.title}`, resultBlocks, sessionState.ts);
+      await updateMessage(sessionState.channelId, `Results for ${sessionState.title}`, resultBlocks, sessionState.ts);
     }
   }
 }
@@ -144,56 +144,3 @@ function getScores(viewOutput: ViewOutput) {
   return value?.split("+");
 }
 
-function createPlanningPokerResultBlocks(sessionState: SessionState) {
-  const blocks: KnownBlock[] = [];
-
-  let sectionBlock: SectionBlock = {
-    type: "section",
-    block_id: "overall_heading",
-    text: {
-      type: "mrkdwn",
-      text: `<@${sessionState.organiserUserId}>'s planning poker session has finished.`
-    }
-  };
-  blocks.push(sectionBlock);
-
-  sectionBlock = {
-    type: "section",
-    block_id: "title",
-    text: {
-      type: "mrkdwn",
-      text: `Title: *${sessionState.title}*`
-    }
-  };
-  blocks.push(sectionBlock);
-  sectionBlock = {
-    type: "section",
-    block_id: "votes_heading",
-    text: {
-      type: "mrkdwn",
-      text: `Votes:`
-    }
-  };
-  blocks.push(sectionBlock);
-
-  const votesText = sessionState.participants.map((participant) => {
-    if(sessionState.votes[participant]) {
-      return `<@${participant}>: ${sessionState.votes[participant]}`;
-    }
-    else {
-      return `Cannot find vote for <@${participant}>`;
-    }
-  });
-  const element: MrkdwnElement = {
-    type: "mrkdwn",
-    text: votesText.join("\n")
-  };
-  const contextBlock: ContextBlock = {
-    type: "context",
-    block_id: "votes",
-    elements: [element]
-  };
-  blocks.push(contextBlock);
-
-  return blocks;
-}

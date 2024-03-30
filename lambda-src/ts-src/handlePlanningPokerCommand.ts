@@ -1,8 +1,8 @@
-import {deleteMessage, openView, postErrorMessageToResponseUrl, postMessage, postToResponseUrl} from './slackAPI';
+import {deleteMessage, openView, postEphmeralErrorMessage, postErrorMessageToResponseUrl, postMessage, postToResponseUrl, updateMessage} from './slackAPI';
 import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
 import util from 'util';
 import {deleteState, getStates} from './sessionStateTable';
-import {showSessionView} from './sessionView';
+import {createPlanningPokerResultBlocks, showSessionView} from './sessionView';
 
 /**
  * Create the modal dialog
@@ -55,13 +55,13 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     if(!sessionState) {
       return;
     }
-    // Delete the old message so we don't have a duplicate
+    // Delete the old message so we don't have a duplicate.
+    // Someone might have deleted it in the Slack UI, hence the try/catch.
     try {
       await deleteMessage(sessionState.channelId, sessionState.ts);
     }
     catch (error) {
-      // Someone might have deleted the old message already, eg by using the "Delete message..." menu in the Slack UI.
-      // So don't worry about this.  Just log at warn level in case we've got into some weird situation and want to debug.
+      // Not much we can do here.  Just log at warn level in case we've got into some weird situation and want to debug.
       console.warn(error);
     }
     // And create a new message which will be the newest message in the channel
@@ -75,7 +75,8 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     if(!sessionState) {
       return;
     }
-    // Delete the old message so we don't have a duplicate
+    // Delete the message if it still exists.
+    // As above, someone might have deleted it in the Slack UI, hence try/catch
     try {
       await deleteMessage(sessionState.channelId, sessionState.ts);
     }
@@ -84,7 +85,29 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
       console.warn(error);
     }
     await deleteState(sessionState.sessionId);
-    await postMessage(event.channel_id, `<@${event.user_id}> cancelled the Planning Poker session ${sessionState.title}`, []);
+    await postMessage(event.channel_id, `<@${event.user_id}> cancelled the session ${sessionState.title}`, []);
+    return;
+  }
+
+  // Eg finish 12
+  if(event.text.match(/^finish\s+\d+/)) {
+    const sessionState = await getSessionStateFromArgument(event.text);
+    if(!sessionState) {
+      return;
+    }
+
+    const resultBlocks = createPlanningPokerResultBlocks(sessionState);
+
+    try {
+      await updateMessage(event.channel_id, `<@${event.user_id}> cancelled the session ${sessionState.title}`, resultBlocks, sessionState.ts);
+      // Only delete the state if we were successful in updating the message.
+      await deleteState(sessionState.sessionId);
+    }
+    catch (error) {
+      await postEphmeralErrorMessage(event.channel_id, event.user_id, "Could not find the original message to show the results.\nTry `/planningpoker show` to recreate it.");
+      console.warn(error);
+    }
+    
     return;
   }
 

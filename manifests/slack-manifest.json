@@ -25,10 +25,10 @@
       ],
       "scopes": {
           "bot": [
-              "chat:write",
-              "chat:write.public",
-              "commands"
-          ]
+            "chat:write",
+            "chat:write.public",
+            "commands"
+        ]
       }
   },
   "settings": {

@@ -2,6 +2,39 @@ import {KnownBlock, ContextBlock, MrkdwnElement, SectionBlock, PlainTextElement,
 import {postMessage, updateMessage} from "./slackAPI";
 import {SessionState, putState} from "./sessionStateTable";
 
+/**
+ * Show the session message in the given channel.
+ * @param channelId Id of channel to post to
+ * @param sessionState Current session state.  This will be updated with the ts of the new post and stored.
+ * @returns The updated session state (with the new ts value).
+ */
+export async function showSessionView(sessionState: SessionState) {
+  const blocks = createPlanningPokerBlocks(sessionState);
+  const ts = await postMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks);
+  if(!ts) {
+    throw new Error("Failed to get ts when posting message.");
+  }
+  sessionState.ts = ts;
+  await putState(sessionState);
+  return sessionState;
+}
+
+/**
+ * Update the view for this session.  The ts field of the sessionState must refer to an existing message.
+ * @param sessionState New state of the seesion.  This will be updated with the ts of the new post and stored.
+ * @returns The updated session state (with the new ts value).
+ */
+export async function updateSessionView(sessionState: SessionState) {
+  const blocks = createPlanningPokerBlocks(sessionState);
+  const ts = await updateMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks, sessionState.ts);
+  if(!ts) {
+    throw new Error("Failed to get ts when posting message.");
+  }
+  sessionState.ts = ts;
+  await putState(sessionState);
+  return sessionState;
+}
+
 function createPlanningPokerBlocks(sessionState: SessionState) {
   const blocks: KnownBlock[] = [];
 
@@ -88,35 +121,56 @@ function createPlanningPokerBlocks(sessionState: SessionState) {
   return blocks;
 }
 
-/**
- * Show the session message in the given channel.
- * @param channelId Id of channel to post to
- * @param sessionState Current session state.  This will be updated with the ts of the new post and stored.
- * @returns The updated session state (with the new ts value).
- */
-export async function showSessionView(sessionState: SessionState) {
-  const blocks = createPlanningPokerBlocks(sessionState);
-  const ts = await postMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks);
-  if(!ts) {
-    throw new Error("Failed to get ts when posting message.");
-  }
-  sessionState.ts = ts;
-  await putState(sessionState);
-  return sessionState;
-}
+export function createPlanningPokerResultBlocks(sessionState: SessionState) {
+  const blocks: KnownBlock[] = [];
 
-/**
- * Update the view for this session.  The ts field of the sessionState must refer to an existing message.
- * @param sessionState New state of the seesion.  This will be updated with the ts of the new post and stored.
- * @returns The updated session state (with the new ts value).
- */
-export async function updateSessionView(sessionState: SessionState) {
-  const blocks = createPlanningPokerBlocks(sessionState);
-  const ts = await updateMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks, sessionState.ts);
-  if(!ts) {
-    throw new Error("Failed to get ts when posting message.");
-  }
-  sessionState.ts = ts;
-  await putState(sessionState);
-  return sessionState;
+  let sectionBlock: SectionBlock = {
+    type: "section",
+    block_id: "overall_heading",
+    text: {
+      type: "mrkdwn",
+      text: `<@${sessionState.organiserUserId}>'s planning poker session has finished.`
+    }
+  };
+  blocks.push(sectionBlock);
+
+  sectionBlock = {
+    type: "section",
+    block_id: "title",
+    text: {
+      type: "mrkdwn",
+      text: `Title: *${sessionState.title}*`
+    }
+  };
+  blocks.push(sectionBlock);
+  sectionBlock = {
+    type: "section",
+    block_id: "votes_heading",
+    text: {
+      type: "mrkdwn",
+      text: `Votes:`
+    }
+  };
+  blocks.push(sectionBlock);
+
+  const votesText = sessionState.participants.map((participant) => {
+    if(sessionState.votes[participant]) {
+      return `<@${participant}>: ${sessionState.votes[participant]}`;
+    }
+    else {
+      return `<@${participant}> did not vote`;
+    }
+  });
+  const element: MrkdwnElement = {
+    type: "mrkdwn",
+    text: votesText.join("\n")
+  };
+  const contextBlock: ContextBlock = {
+    type: "context",
+    block_id: "votes",
+    elements: [element]
+  };
+  blocks.push(contextBlock);
+
+  return blocks;
 }
