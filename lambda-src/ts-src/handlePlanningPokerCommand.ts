@@ -29,18 +29,23 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     // Only show sessions from this channel.
     // TODO This is not very efficient.  Should add secondary index on channelId in the database.
     sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
-    const blocks: KnownBlock[] = [];
-    for(let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
-      const sectionBlock: SectionBlock = {
-        type: 'section',
-        text: {
-          type: "mrkdwn",
-          text: `${sessionStateIndex}: ${sessionStates[sessionStateIndex].title}`
-        }
-      };
-      blocks.push(sectionBlock);
+    if(sessionStates.length == 0) {
+      await postToResponseUrl(event.response_url, "ephemeral", "No Active Planning Poker sessions", []);
     }
-    await postToResponseUrl(event.response_url, "ephemeral", "Active Planning Poker sessions", blocks);
+    else {
+      const blocks: KnownBlock[] = [];
+      for(let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
+        const sectionBlock: SectionBlock = {
+          type: 'section',
+          text: {
+            type: "mrkdwn",
+            text: `${sessionStateIndex}: ${sessionStates[sessionStateIndex].title}`
+          }
+        };
+        blocks.push(sectionBlock);
+      }
+      await postToResponseUrl(event.response_url, "ephemeral", "Active Planning Poker sessions", blocks);
+    }
     return;
   }
 

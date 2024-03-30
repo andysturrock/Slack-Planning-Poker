@@ -3,7 +3,7 @@ import {verifySlackRequest} from './verifySlackRequest';
 import {getSecretValue} from './awsAPI';
 import util from 'util';
 import {KnownBlock, ViewSubmitAction, ViewOutput, ContextBlock, MrkdwnElement, SectionBlock, BlockAction, ButtonAction} from "@slack/bolt";
-import {updateMessage} from "./slackAPI";
+import {postEphmeralErrorMessage, updateMessage} from "./slackAPI";
 import {nanoid} from 'nanoid';
 import {SessionState, deleteState, getState} from "./sessionStateTable";
 import {showSessionView, updateSessionView} from "./sessionView";
@@ -99,11 +99,21 @@ async function handleBlockAction(blockAction: BlockAction) {
     const buttonAction: ButtonAction = blockAction.actions[0];
     const vote = buttonAction.value;
     const sessionId = buttonAction.action_id.split(":")[0];
-    console.log(`User ${blockAction.user.id} voted for ${vote} in session ${sessionId}`);
+
     let sessionState = await getState(sessionId);
     if(!sessionState) {
       throw new Error(`Failed to get state for session id ${sessionId}`);
     }
+    // Check the user who voted is one of the participants
+    const participant = sessionState.participants.find((participant) => participant == blockAction.user.id);
+    if(!participant) {
+      // blockAction.channel can be undefined according to the type system but won't be.
+      if(blockAction.channel){
+        await postEphmeralErrorMessage(blockAction.channel.id, blockAction.user.id, "You are not a participant in this session");
+      }
+      return;
+    }
+
     sessionState.votes[blockAction.user.id] = vote;
     sessionState = await updateSessionView(sessionState);
 
