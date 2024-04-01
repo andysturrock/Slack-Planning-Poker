@@ -1,43 +1,44 @@
 {
   "display_information": {
-      "name": "Planning Poker",
-      "description": "Agile Planning Poker in Slack",
-      "background_color": "#614b79"
+    "name": "Planning Poker",
+    "description": "Agile Planning Poker in Slack",
+    "background_color": "#614b79",
+    "long_description": "Planning Poker in Slack.  Options to the command are:\r\n - [help] - Show usage\r\n - [session title] - Starts a new session with this title, eg a user story reference or ticket id\r\n - [list] - List all active sessions in this channel.  Each session is given an id number for use in the options below.  Note this id number will change over time so re-run this option each time you want to use an option below.\r\n - [cancel <id>] - Cancel the active session with the id obtained from the list option.\r\n - [finish <id>] - Finish the active session with the id obtained from the list option.  Results are shown where people have voted.\r\n - [show <id>] - Repost the message for the active session with the id obtained from the list option, so that it is the latest message in that chat.  Can also be used if someone has deleted the original message containing the session.  The original message will be deleted but if people have replied in a thread to that original message that thread remains."
   },
   "features": {
-      "bot_user": {
-          "display_name": "Planning Poker",
-          "always_online": true
-      },
-      "slash_commands": [
-          {
-              "command": "/planningpoker",
-              "url": "https://planningpoker.slackapps.example.com/0_0_1/planningpoker",
-              "description": "Start a Planning Poker session",
-              "usage_hint": "[help | session name]",
-              "should_escape": true
-          }
-      ]
+    "bot_user": {
+      "display_name": "Planning Poker",
+      "always_online": true
+    },
+    "slash_commands": [
+      {
+        "command": "/planningpoker",
+        "url": "https://planningpoker.slackapps.example.com/0_0_1/planningpoker",
+        "description": "Start or control a Planning Poker session",
+        "usage_hint": "[help] | [session name] | [list|show <id>|cancel <id>|finish <id>]",
+        "should_escape": true
+      }
+    ]
   },
   "oauth_config": {
-      "redirect_urls": [
-          "https://planningpoker.slackapps.example.com/0_0_1/slack-oauth-redirect"
-      ],
-      "scopes": {
-          "bot": [
-            "chat:write",
-            "chat:write.public",
-            "commands"
-        ]
-      }
+    "redirect_urls": [
+      "https://planningpoker.slackapps.example.com/0_0_1/slack-oauth-redirect"
+    ],
+    "scopes": {
+      "bot": [
+        "chat:write",
+        "chat:write.public",
+        "commands"
+      ]
+    }
   },
   "settings": {
-      "interactivity": {
-          "is_enabled": true,
-          "request_url": "https://planningpoker.slackapps.example.com/0_0_1/interactive-endpoint"
-      },
-      "org_deploy_enabled": true,
-      "socket_mode_enabled": false,
-      "token_rotation_enabled": true
+    "interactivity": {
+      "is_enabled": true,
+      "request_url": "https://planningpoker.slackapps.example.com/0_0_1/interactive-endpoint"
+    },
+    "org_deploy_enabled": true,
+    "socket_mode_enabled": false,
+    "token_rotation_enabled": true
   }
 }

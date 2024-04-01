@@ -12,7 +12,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   console.log(`event: ${util.inspect(event)}`);
 
   if(event.text === "help") {
-    const usage = "Usage: /planningpoker [session name][list]";
+    const usage = "Usage: /planningpoker [help] | [session name] | [list|show <id>|cancel<id>|finish<id>]";
     const sectionBlock: SectionBlock = {
       type: 'section',
       text: {
