@@ -1,12 +1,12 @@
 import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {verifySlackRequest} from './verifySlackRequest';
 import {getSecretValue} from './awsAPI';
-import util from 'util';
 import {ViewSubmitAction, ViewOutput, BlockAction, ButtonAction} from "@slack/bolt";
 import {postEphmeralErrorMessage, updateMessage} from "./slackAPI";
 import {nanoid} from 'nanoid';
 import {SessionState, deleteState, getState} from "./sessionStateTable";
 import {createPlanningPokerResultBlocks, showSessionView, updateSessionView} from "./sessionView";
+import {ChannelDefaults, putChannelDefaults} from "./channelDefaultsTable";
 
 /**
  * Handle the interaction posts from Slack.
@@ -33,8 +33,6 @@ export async function handleInteractiveEndpoint(event: APIGatewayProxyEvent): Pr
       type: string
     };
     const payload = JSON.parse(body) as ActionType;
-
-    console.log(`body: ${util.inspect(payload, false, null)}`);
 
     switch(payload.type) {
     case "view_submission": {
@@ -79,6 +77,14 @@ async function handleViewSubmission(viewSubmitAction: ViewSubmitAction) {
   if(participants && participants.length > 0 && scores && scores.length > 0) {
     const sessionId = nanoid();
     const channelId = viewSubmitAction.view.private_metadata;
+
+    // Save the values entered as new defaults for this channel
+    const channelDefaults: ChannelDefaults = {
+      channelId,
+      participants,
+      scores
+    };
+    await putChannelDefaults(channelDefaults);
 
     const sessionState: SessionState = {
       sessionId,

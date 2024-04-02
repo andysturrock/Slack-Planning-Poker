@@ -28,6 +28,7 @@ new LambdaStack(app, 'PlanningPokerLambdaStack', {
   env: {region},
   planningPokerSecret: secretsManagerStack.planningPokerSecret,
   sessionStateTable: dynamoDBStack.sessionStateTable,
+  channelDefaultsTable: dynamoDBStack.channelDefaultsTable,
   lambdaVersion,
   customDomainName,
   planningPokerDomainName: planningPokerDomainName,
