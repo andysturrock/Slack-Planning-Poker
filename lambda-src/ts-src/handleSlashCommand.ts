@@ -1,13 +1,11 @@
 import {generateImmediateSlackResponseBlocks} from './generateImmediateSlackResponseBlocks';
 import querystring from 'querystring';
-import util from 'util';
 import {APIGatewayProxyEvent, APIGatewayProxyResult} from "aws-lambda";
 import {verifySlackRequest} from "./verifySlackRequest";
 import {getSecretValue, invokeLambda} from "./awsAPI";
 import {SlashCommand} from "@slack/bolt";
 
 export async function handleSlashCommand(event: APIGatewayProxyEvent): Promise<APIGatewayProxyResult> {
-  console.log(`event: ${util.inspect(event)}`);
   try {
     if(!event.body) {
       throw new Error("Missing event body");

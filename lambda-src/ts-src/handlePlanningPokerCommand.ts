@@ -1,15 +1,14 @@
 import {deleteMessage, openView, postEphmeralErrorMessage, postErrorMessageToResponseUrl, postMessage, postToResponseUrl, updateMessage} from './slackAPI';
 import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
-import util from 'util';
 import {deleteState, getStates} from './sessionStateTable';
 import {createPlanningPokerResultBlocks, showSessionView} from './sessionView';
+import {ChannelDefaults, getChannelDefaults} from './channelDefaultsTable';
 
 /**
  * Create the modal dialog
  * @param event the payload from the slash command
  */
 export async function handlePlanningPokerCommand(event: SlashCommand): Promise<void> {
-  console.log(`event: ${util.inspect(event)}`);
 
   if(event.text === "help") {
     const usage = "Usage: /planningpoker [help] | [session name] | [list|show <id>|cancel<id>|finish<id>]";
@@ -130,9 +129,17 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
 
   // The main command.  Create a dialog to set the options.  Submitting will create a new session.
   try {
-    // Use Fibonacci series as default.
-    const defaultScores = ["0", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89", "144"];
-    const blocks = createModalBlocks(event.text, defaultScores, event.user_id);
+    let channelDefaults = await getChannelDefaults(event.channel_id);
+    if(!channelDefaults) {
+      channelDefaults = {
+        channelId: event.channel_id,
+        // Use Fibonacci series as default.
+        scores: ["0", "1", "2", "3", "5", "8", "13", "21", "34", "55", "89", "144"],
+        participants: [event.user_id]
+      };
+    }
+    
+    const blocks = createModalBlocks(event.text, channelDefaults);
     const modalView: ModalView = {
       type: "modal",
       title: {
@@ -159,7 +166,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 }
 
-function createModalBlocks(title: string, scores: string[], userId: string) {
+function createModalBlocks(title: string, channelDefaults: ChannelDefaults) {
   const blocks: KnownBlock[] = [];
   let inputBlock: InputBlock = {
     type: "input",
@@ -196,13 +203,13 @@ function createModalBlocks(title: string, scores: string[], userId: string) {
         type: "plain_text",
         text: "Participant names"
       },
-      initial_users: [userId],
+      initial_users: channelDefaults.participants,
     },
     optional: false
   };
   blocks.push(inputBlock);
 
-  const initial_value = scores.join(' ');
+  const initial_value = channelDefaults.scores.join(' ');
   inputBlock = {
     type: "input",
     block_id: "scores",
