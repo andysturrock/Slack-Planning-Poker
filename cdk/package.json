@@ -21,7 +21,7 @@
     "@aws-cdk/assert": "^2.68.0",
     "@types/getenv": "^1.0.0",
     "adm-zip": "^0.5.10",
-    "dotenv": "^16.4.7",
+    "dotenv": "^17.2.3",
     "glob-promise": "^6.0.3"
   }
 }
