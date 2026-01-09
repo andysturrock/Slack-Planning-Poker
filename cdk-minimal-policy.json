@@ -1,0 +1,76 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CdkBootstrapRoleAssumption",
+      "Effect": "Allow",
+      "Action": [
+        "sts:AssumeRole"
+      ],
+      "Resource": "arn:aws:iam::*:role/cdk-hnb659fds-*"
+    },
+    {
+      "Sid": "SSMBootstrapManagement",
+      "Effect": "Allow",
+      "Action": [
+        "ssm:GetParameter",
+        "ssm:PutParameter",
+        "ssm:AddTagsToResource"
+      ],
+      "Resource": "arn:aws:ssm:*:*:parameter/cdk-bootstrap/hnb659fds/*"
+    },
+    {
+      "Sid": "CdkCliReadiness",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:Describe*",
+        "cloudformation:Get*",
+        "cloudformation:List*",
+        "cloudformation:ValidateTemplate",
+        "acm:ListCertificates"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "PlanningPokerManagement",
+      "Effect": "Allow",
+      "Action": [
+        "cloudformation:*",
+        "iam:*",
+        "lambda:*",
+        "apigateway:*",
+        "dynamodb:*",
+        "secretsmanager:*",
+        "s3:*",
+        "ecr:*",
+        "acm:*",
+        "route53:*",
+        "logs:*"
+      ],
+      "Resource": [
+        "arn:aws:cloudformation:*:*:stack/PlanningPoker*/*",
+        "arn:aws:cloudformation:*:*:stack/CDKToolkit/*",
+        "arn:aws:iam::*:role/PlanningPoker*",
+        "arn:aws:iam::*:policy/PlanningPoker*",
+        "arn:aws:iam::*:role/cdk-hnb659fds-*",
+        "arn:aws:lambda:*:*:function:PlanningPoker*",
+        "arn:aws:dynamodb:*:*:table/PlanningPoker*",
+        "arn:aws:secretsmanager:*:*:secret:PlanningPoker*",
+        "arn:aws:s3:::cdk-hnb659fds-assets-*",
+        "arn:aws:ecr:*:*:repository/cdk-hnb659fds-*",
+        "arn:aws:apigateway:*::/*",
+        "arn:aws:logs:*:*:log-group:/aws/lambda/PlanningPoker*",
+        "arn:aws:logs:*:*:log-group:PlanningPoker*"
+      ]
+    },
+    {
+      "Sid": "IamPassRole",
+      "Effect": "Allow",
+      "Action": "iam:PassRole",
+      "Resource": [
+        "arn:aws:iam::*:role/PlanningPoker*",
+        "arn:aws:iam::*:role/cdk-hnb659fds-*"
+      ]
+    }
+  ]
+}

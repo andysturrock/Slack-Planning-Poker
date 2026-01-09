@@ -18,23 +18,35 @@ export class LambdaStack extends Stack {
     // so replace the dots with underscores first.
     const lambdaVersionIdForURL = props.lambdaVersion.replace(/\./g, '_');
 
-    // Common props for all lambdas, so define them once here.
-    const allLambdaProps = {
-      environment: {
-        NODE_OPTIONS: '--enable-source-maps',
-      },
-      logRetention: logs.RetentionDays.THREE_DAYS,
-      runtime: lambda.Runtime.NODEJS_22_X,
-      timeout: Duration.seconds(30),
+    /**
+     * Helper to create a Lambda function and its associated LogGroup with retention.
+     */
+    const createPlanningPokerFunction = (name: string, functionName: string, path: string, options: Partial<lambda.FunctionProps> = {}) => {
+      // Create the LogGroup explicitly to manage retention without deprecation warnings
+      new logs.LogGroup(this, `${name}LogGroup`, {
+        logGroupName: `/aws/lambda/${functionName}`,
+        retention: logs.RetentionDays.THREE_DAYS,
+      });
+
+      return new lambda.Function(this, name, {
+        handler: `${path.split('/').pop()}.${path.split('/').pop()}`,
+        functionName,
+        code: lambda.Code.fromAsset(`../lambda-src/dist/${path}`),
+        runtime: lambda.Runtime.NODEJS_22_X,
+        timeout: Duration.seconds(30),
+        environment: {
+          NODE_OPTIONS: '--enable-source-maps',
+        },
+        ...options
+      });
     };
 
     // The lambda for rotating the Slack refresh token.
-    const rotateSlackRefreshTokenLambda = new lambda.Function(this, "rotateSlackRefreshTokenLambda", {
-      handler: "rotateSlackRefreshToken.rotateSlackRefreshToken",
-      functionName: 'PlanningPoker-rotateSlackRefreshToken',
-      code: lambda.Code.fromAsset("../lambda-src/dist/rotateSlackRefreshToken"),
-      ...allLambdaProps
-    });
+    const rotateSlackRefreshTokenLambda = createPlanningPokerFunction(
+      "rotateSlackRefreshTokenLambda",
+      'PlanningPoker-rotateSlackRefreshToken',
+      "rotateSlackRefreshToken"
+    );
     // Allow read/write access to the secret it needs
     props.planningPokerSecret.grantRead(rotateSlackRefreshTokenLambda);
     props.planningPokerSecret.grantWrite(rotateSlackRefreshTokenLambda);
@@ -47,34 +59,31 @@ export class LambdaStack extends Stack {
     });
 
     // The lambda for handling the callback for the Slack install
-    const handleSlackAuthRedirectLambda = new lambda.Function(this, "handleSlackAuthRedirectLambda", {
-      handler: "handleSlackAuthRedirect.handleSlackAuthRedirect",
-      functionName: 'PlanningPoker-handleSlackAuthRedirect',
-      code: lambda.Code.fromAsset("../lambda-src/dist/handleSlackAuthRedirect"),
-      ...allLambdaProps
-    });
+    const handleSlackAuthRedirectLambda = createPlanningPokerFunction(
+      "handleSlackAuthRedirectLambda",
+      'PlanningPoker-handleSlackAuthRedirect',
+      "handleSlackAuthRedirect"
+    );
     // Allow read/write access to the secret it needs
     props.planningPokerSecret.grantRead(handleSlackAuthRedirectLambda);
     props.planningPokerSecret.grantWrite(handleSlackAuthRedirectLambda);
 
     // Create the lambda which receives the slash command and generates an initial response.
-    const handleSlashCommand = new lambda.Function(this, "handleSlashCommand", {
-      handler: "handleSlashCommand.handleSlashCommand",
-      functionName: 'PlanningPoker-handleSlashCommand',
-      code: lambda.Code.fromAsset("../lambda-src/dist/handleSlashCommand"),
-      ...allLambdaProps
-    });
+    const handleSlashCommand = createPlanningPokerFunction(
+      "handleSlashCommand",
+      'PlanningPoker-handleSlashCommand',
+      "handleSlashCommand"
+    );
     // Allow read access to the secret it needs
     props.planningPokerSecret.grantRead(handleSlashCommand);
 
     // Create the lambda for handling interactions from the dialog.
-    const handleInteractiveEndpointLambda = new lambda.Function(this, "handleInteractiveEndpointLambda", {
-      handler: "handleInteractiveEndpoint.handleInteractiveEndpoint",
-      functionName: 'PlanningPoker-handleInteractiveEndpoint',
-      code: lambda.Code.fromAsset("../lambda-src/dist/handleInteractiveEndpoint"),
-      memorySize: 512,
-      ...allLambdaProps
-    });
+    const handleInteractiveEndpointLambda = createPlanningPokerFunction(
+      "handleInteractiveEndpointLambda",
+      'PlanningPoker-handleInteractiveEndpoint',
+      "handleInteractiveEndpoint",
+      { memorySize: 512 }
+    );
     // Allow read access to the secret it needs
     props.planningPokerSecret.grantRead(handleInteractiveEndpointLambda);
     props.planningPokerSecret.grantWrite(handleInteractiveEndpointLambda);
@@ -84,13 +93,12 @@ export class LambdaStack extends Stack {
 
     // Create the lambda which creates the modal dialog and handles other commands (eg list, show).
     // This lambda is called from the initial response lambda, not via the API Gateway.
-    const handlePlanningPokerCommandLambda = new lambda.Function(this, "handlePlanningPokerCommandLambda", {
-      handler: "handlePlanningPokerCommand.handlePlanningPokerCommand",
-      functionName: 'PlanningPoker-handlePlanningPokerCommandLambda',
-      code: lambda.Code.fromAsset("../lambda-src/dist/handlePlanningPokerCommand"),
-      memorySize: 1024,
-      ...allLambdaProps
-    });
+    const handlePlanningPokerCommandLambda = createPlanningPokerFunction(
+      "handlePlanningPokerCommandLambda",
+      'PlanningPoker-handlePlanningPokerCommandLambda',
+      "handlePlanningPokerCommand",
+      { memorySize: 1024 }
+    );
     // This function is going to be invoked asynchronously, so set some extra config for that
     new lambda.EventInvokeConfig(this, 'handlePlanningPokerCommandLambdaEventInvokeConfig', {
       function: handlePlanningPokerCommandLambda,
@@ -115,9 +123,8 @@ export class LambdaStack extends Stack {
     // Create the cert for the gateway.
     // Usefully, this writes the DNS Validation CNAME records to the R53 zone,
     // which is great as normal Cloudformation doesn't do that.
-    const acmCertificateForCustomDomain = new acm.DnsValidatedCertificate(this, 'CustomDomainCertificate', {
+    const acmCertificateForCustomDomain = new acm.Certificate(this, 'CustomDomainCertificate', {
       domainName: props.planningPokerDomainName,
-      hostedZone: zone,
       validation: acm.CertificateValidation.fromDns(zone),
     });
 

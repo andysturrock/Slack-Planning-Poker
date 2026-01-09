@@ -10,7 +10,8 @@
   "scripts": {
     "lint": "eslint .",
     "test": "npm run test --workspaces --if-present",
-    "build": "npm run build --workspace=cdk"
+    "build": "npm run build --workspace=cdk",
+    "deploy": "npm run deploy --workspace=cdk"
   },
   "devDependencies": {
     "@tsconfig/node22": "^22.0.0",
