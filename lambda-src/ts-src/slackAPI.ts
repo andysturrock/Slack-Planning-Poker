@@ -1,7 +1,7 @@
-import {WebClient, LogLevel, ViewsOpenArguments, OAuthV2AccessArguments} from "@slack/web-api";
-import {Block, KnownBlock, ModalView} from "@slack/bolt";
-import {getSecretValue, putSecretValue} from "./awsAPI";
+import { Block, KnownBlock, View } from "@slack/types";
+import { LogLevel, OAuthV2AccessArguments, ViewsOpenArguments, WebClient } from "@slack/web-api";
 import axios from "axios";
+import { getSecretValue, putSecretValue } from "./awsAPI";
 
 /**
  * Refreshes the refresh token and returns an access token
@@ -23,10 +23,10 @@ export async function refreshToken() {
     client_secret: slackClientSecret
   };
   const response = await client.oauth.v2.access(oauthV2AccessArguments);
-  if(!response.refresh_token) {
+  if (!response.refresh_token) {
     throw new Error("Failed to obtain new refresh token");
   }
-  if(!response.access_token) {
+  if (!response.access_token) {
     throw new Error("Failed to obtain new access token");
   }
   await putSecretValue('PlanningPoker', 'slackRefreshToken', response.refresh_token);
@@ -42,7 +42,7 @@ async function createClient() {
   });
 }
 
-export async function postMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], thread_ts?: string) {
+export async function postMessage(channelId: string, text: string, blocks: (KnownBlock | Block)[], thread_ts?: string) {
   const client = await createClient();
   const chatPostMessageResponse = await client.chat.postMessage({
     channel: channelId,
@@ -53,7 +53,7 @@ export async function postMessage(channelId: string, text:string, blocks: (Known
   return chatPostMessageResponse.ts;
 }
 
-export async function updateMessage(channelId: string, text:string, blocks: (KnownBlock | Block)[], ts: string) {
+export async function updateMessage(channelId: string, text: string, blocks: (KnownBlock | Block)[], ts: string) {
   const client = await createClient();
   const chatUpdateResponse = await client.chat.update({
     channel: channelId,
@@ -73,17 +73,17 @@ export async function deleteMessage(channelId: string, ts: string) {
   return chatDeleteResponse.ts;
 }
 
-export async function postEphemeralMessage(channelId: string, userId: string, text:string, blocks: (KnownBlock | Block)[]) {
+export async function postEphemeralMessage(channelId: string, userId: string, text: string, blocks: (KnownBlock | Block)[]) {
   const client = await createClient();
   await client.chat.postEphemeral({
     user: userId,
     channel: channelId,
     text,
     blocks
-  });  
+  });
 }
 
-export async function postEphmeralErrorMessage(channelId: string, userId:string, text: string) {
+export async function postEphmeralErrorMessage(channelId: string, userId: string, text: string) {
   const blocks: KnownBlock[] = [
     {
       type: "section",
@@ -96,7 +96,7 @@ export async function postEphmeralErrorMessage(channelId: string, userId:string,
   await postEphemeralMessage(channelId, userId, text, blocks);
 }
 
-export async function openView(trigger_id: string, modalView: ModalView) {
+export async function openView(trigger_id: string, modalView: View) {
   const client = await createClient();
   const viewsOpenArguments: ViewsOpenArguments = {
     trigger_id,

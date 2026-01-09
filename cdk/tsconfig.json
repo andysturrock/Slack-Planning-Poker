@@ -1,26 +1,21 @@
 {
-  "extends": "@tsconfig/node20/tsconfig.json",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
-    "target": "es2020",
-    "moduleResolution":"node",
-    "module": "commonjs",
-    "declaration": true,
-    "strict": true,
-    "noImplicitAny": true,
-    "strictNullChecks": true,
-    "noImplicitThis": true,
-    "alwaysStrict": true,
-    "noImplicitReturns": true,
-    "inlineSourceMap": true,
-    "inlineSources": true,
-    "experimentalDecorators": true,
-    "strictPropertyInitialization": false,
-    "typeRoots": ["./node_modules/@types"],
     "outDir": "dist",
-    "esModuleInterop": true, 
-    "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true, 
-    "isolatedModules": true, 
+    "rootDir": ".",
+    "types": [
+      "node",
+      "jest"
+    ]
   },
-  "exclude": ["cdk.out", "dist"]
+  "include": [
+    "bin/**/*.ts",
+    "lib/**/*.ts",
+    "test/**/*.ts"
+  ],
+  "exclude": [
+    "cdk.out",
+    "dist",
+    "node_modules"
+  ]
 }

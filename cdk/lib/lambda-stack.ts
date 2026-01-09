@@ -1,14 +1,14 @@
-import {Duration, Stack} from 'aws-cdk-lib';
-import {Construct} from 'constructs';
+import { Duration, Stack } from 'aws-cdk-lib';
+import * as apigateway from 'aws-cdk-lib/aws-apigateway';
+import * as acm from 'aws-cdk-lib/aws-certificatemanager';
+import { Rule, Schedule } from 'aws-cdk-lib/aws-events';
+import { LambdaFunction } from 'aws-cdk-lib/aws-events-targets';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as logs from 'aws-cdk-lib/aws-logs';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as targets from 'aws-cdk-lib/aws-route53-targets';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as acm from 'aws-cdk-lib/aws-certificatemanager';
-import * as apigateway from 'aws-cdk-lib/aws-apigateway';
-import * as logs from 'aws-cdk-lib/aws-logs';
-import {LambdaStackProps} from './common';
-import {Rule, Schedule} from 'aws-cdk-lib/aws-events';
-import {LambdaFunction} from 'aws-cdk-lib/aws-events-targets';
+import { Construct } from 'constructs';
+import { LambdaStackProps } from './common';
 
 export class LambdaStack extends Stack {
   constructor(scope: Construct, id: string, props: LambdaStackProps) {
@@ -24,7 +24,7 @@ export class LambdaStack extends Stack {
         NODE_OPTIONS: '--enable-source-maps',
       },
       logRetention: logs.RetentionDays.THREE_DAYS,
-      runtime: lambda.Runtime.NODEJS_20_X,
+      runtime: lambda.Runtime.NODEJS_22_X,
       timeout: Duration.seconds(30),
     };
 
@@ -151,13 +151,13 @@ export class LambdaStack extends Stack {
 
     // Connect the API Gateway to the lambdas
     const handleSlashCommandLambdaIntegration = new apigateway.LambdaIntegration(handleSlashCommand, {
-      requestTemplates: {"application/json": '{ "statusCode": "200" }'}
+      requestTemplates: { "application/json": '{ "statusCode": "200" }' }
     });
     const handleSlackAuthRedirectLambdaIntegration = new apigateway.LambdaIntegration(handleSlackAuthRedirectLambda, {
-      requestTemplates: {"application/json": '{ "statusCode": "200" }'}
+      requestTemplates: { "application/json": '{ "statusCode": "200" }' }
     });
     const handleInteractiveEndpointLambdaIntegration = new apigateway.LambdaIntegration(handleInteractiveEndpointLambda, {
-      requestTemplates: {"application/json": '{ "statusCode": "200" }'}
+      requestTemplates: { "application/json": '{ "statusCode": "200" }' }
     });
     const handleSlashCommandResource = api.root.addResource('planningpoker');
     const handleSlackAuthRedirectResource = api.root.addResource('slack-oauth-redirect');
@@ -174,6 +174,6 @@ export class LambdaStack extends Stack {
       target: route53.RecordTarget.fromAlias(new targets.ApiGatewayDomain(customDomain))
     });
     // And path mapping to the API
-    customDomain.addBasePathMapping(api, {basePath: `${lambdaVersionIdForURL}`, stage: stage});
+    customDomain.addBasePathMapping(api, { basePath: `${lambdaVersionIdForURL}`, stage: stage });
   }
 }

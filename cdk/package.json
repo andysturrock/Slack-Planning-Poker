@@ -1,5 +1,5 @@
 {
-  "name": "slack-planning-poker",
+  "name": "cdk",
   "private": true,
   "version": "0.0.1",
   "bin": {
@@ -11,30 +11,17 @@
     "build": "bash buildLambdaBundles.sh",
     "deploy": "cdk deploy --require-approval=never --all"
   },
-  "devDependencies": {
-    "@aws-cdk/assert": "^2.68.0",
-    "@tsconfig/node20": "^20.1.4",
-    "@types/getenv": "^1.0.0",
-    "@types/jest": "^29.5.11",
-    "@types/node": "^20.5.1",
-    "@types/source-map-support": "^0.5.6",
-    "@typescript-eslint/eslint-plugin": "^7.4.0",
-    "@typescript-eslint/parser": "^7.4.0",
-    "adm-zip": "^0.5.10",
-    "dotenv": "^16.3.1",
-    "esbuild": "^0.25.0",
-    "eslint": "^8.47.0",
-    "glob-promise": "^6.0.3",
-    "jest": "^29.7.0",
-    "source-map-support": "^0.5.21",
-    "ts-jest": "^29.1.1",
-    "ts-node": "^10.8.1",
-    "typescript": "^5.1.6"
-  },
   "dependencies": {
-    "aws-cdk-lib": "^2.189.1",
-    "constructs": "^10.2.69",
+    "aws-cdk-lib": "^2.173.4",
+    "constructs": "^10.4.2",
     "getenv": "^1.0.0",
     "source-map-support": "^0.5.21"
+  },
+  "devDependencies": {
+    "@aws-cdk/assert": "^2.68.0",
+    "@types/getenv": "^1.0.0",
+    "adm-zip": "^0.5.10",
+    "dotenv": "^16.4.7",
+    "glob-promise": "^6.0.3"
   }
 }
