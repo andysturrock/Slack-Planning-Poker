@@ -1,6 +1,6 @@
-import {KnownBlock, ContextBlock, MrkdwnElement, SectionBlock, PlainTextElement, Button, ActionsBlock} from "@slack/bolt";
-import {postMessage, updateMessage} from "./slackAPI";
-import {SessionState, putState} from "./sessionStateTable";
+import { ActionsBlock, Button, ContextBlock, KnownBlock, MrkdwnElement, PlainTextElement, SectionBlock } from "@slack/types";
+import { SessionState, putState } from "./sessionStateTable";
+import { postMessage, updateMessage } from "./slackAPI";
 
 /**
  * Show the session message in the given channel.
@@ -11,7 +11,7 @@ import {SessionState, putState} from "./sessionStateTable";
 export async function showSessionView(sessionState: SessionState) {
   const blocks = createPlanningPokerBlocks(sessionState);
   const ts = await postMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks);
-  if(!ts) {
+  if (!ts) {
     throw new Error("Failed to get ts when posting message.");
   }
   sessionState.ts = ts;
@@ -27,7 +27,7 @@ export async function showSessionView(sessionState: SessionState) {
 export async function updateSessionView(sessionState: SessionState) {
   const blocks = createPlanningPokerBlocks(sessionState);
   const ts = await updateMessage(sessionState.channelId, `Planning Poker: ${sessionState.title}`, blocks, sessionState.ts);
-  if(!ts) {
+  if (!ts) {
     throw new Error("Failed to get ts when posting message.");
   }
   sessionState.ts = ts;
@@ -67,7 +67,7 @@ function createPlanningPokerBlocks(sessionState: SessionState) {
   blocks.push(sectionBlock);
 
   const votesText = sessionState.participants.map((participant) => {
-    if(sessionState.votes[participant]) {
+    if (sessionState.votes[participant]) {
       return `<@${participant}>: :white_check_mark:`;
     }
     else {
@@ -89,13 +89,13 @@ function createPlanningPokerBlocks(sessionState: SessionState) {
   // the score buttons fit on the message properly.
   // Also remove duplicates.
   function chunk(arr: string[], size: number) {
-    const chunks = Array.from({length: Math.ceil(arr.length / size)}, (v, i) =>
+    const chunks = Array.from({ length: Math.ceil(arr.length / size) }, (v, i) =>
       arr.slice(i * size, i * size + size)
     );
     return [...new Set(chunks)];
   }
   const scoresChunks = chunk(sessionState.scores, 5);
-  for(let scoresChunkIndex = 0; scoresChunkIndex < scoresChunks.length; ++scoresChunkIndex) {
+  for (let scoresChunkIndex = 0; scoresChunkIndex < scoresChunks.length; ++scoresChunkIndex) {
     const elements = scoresChunks[scoresChunkIndex].map((score) => {
       const plainTextElement: PlainTextElement = {
         type: "plain_text",
@@ -154,7 +154,7 @@ export function createPlanningPokerResultBlocks(sessionState: SessionState) {
   blocks.push(sectionBlock);
 
   const votesText = sessionState.participants.map((participant) => {
-    if(sessionState.votes[participant]) {
+    if (sessionState.votes[participant]) {
       return `<@${participant}>: ${sessionState.votes[participant]}`;
     }
     else {

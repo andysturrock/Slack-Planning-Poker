@@ -1,4 +1,4 @@
-import {KnownBlock, SectionBlock} from "@slack/bolt";
+import { KnownBlock, SectionBlock } from "@slack/types";
 
 export function generateImmediateSlackResponseBlocks() {
   const blocks: KnownBlock[] = [];

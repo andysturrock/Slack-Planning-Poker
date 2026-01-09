@@ -1,8 +1,9 @@
-import {deleteMessage, openView, postEphmeralErrorMessage, postErrorMessageToResponseUrl, postMessage, postToResponseUrl, updateMessage} from './slackAPI';
-import {InputBlock, KnownBlock, ModalView, SectionBlock, SlashCommand} from '@slack/bolt';
-import {deleteState, getStates} from './sessionStateTable';
-import {createPlanningPokerResultBlocks, showSessionView} from './sessionView';
-import {ChannelDefaults, getChannelDefaults} from './channelDefaultsTable';
+import { SlashCommand } from '@slack/bolt';
+import { InputBlock, KnownBlock, SectionBlock, View } from '@slack/types';
+import { ChannelDefaults, getChannelDefaults } from './channelDefaultsTable';
+import { deleteState, getStates } from './sessionStateTable';
+import { createPlanningPokerResultBlocks, showSessionView } from './sessionView';
+import { deleteMessage, openView, postEphmeralErrorMessage, postErrorMessageToResponseUrl, postMessage, postToResponseUrl, updateMessage } from './slackAPI';
 
 /**
  * Create the modal dialog
@@ -10,7 +11,7 @@ import {ChannelDefaults, getChannelDefaults} from './channelDefaultsTable';
  */
 export async function handlePlanningPokerCommand(event: SlashCommand): Promise<void> {
 
-  if(event.text === "help") {
+  if (event.text === "help") {
     const usage = "Usage: /planningpoker [help] | [session name] | [list|show <id>|cancel<id>|finish<id>]";
     const sectionBlock: SectionBlock = {
       type: 'section',
@@ -23,17 +24,17 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
     return;
   }
 
-  if(event.text === "list") {
+  if (event.text === "list") {
     let sessionStates = await getStates();
     // Only show sessions from this channel.
     // TODO This is not very efficient.  Should add secondary index on channelId in the database.
     sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
-    if(sessionStates.length == 0) {
+    if (sessionStates.length == 0) {
       await postToResponseUrl(event.response_url, "ephemeral", "No Active Planning Poker sessions", []);
     }
     else {
       const blocks: KnownBlock[] = [];
-      for(let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
+      for (let sessionStateIndex = 0; sessionStateIndex < sessionStates.length; ++sessionStateIndex) {
         const sectionBlock: SectionBlock = {
           type: 'section',
           text: {
@@ -49,9 +50,9 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   // Eg show 12
-  if(event.text.match(/^show\s+\d+/)) {
+  if (event.text.match(/^show\s+\d+/)) {
     const sessionState = await getSessionStateFromArgument(event.text);
-    if(!sessionState) {
+    if (!sessionState) {
       return;
     }
     // Delete the old message so we don't have a duplicate.
@@ -69,9 +70,9 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   // Eg cancel 12
-  if(event.text.match(/^cancel\s+\d+/)) {
+  if (event.text.match(/^cancel\s+\d+/)) {
     const sessionState = await getSessionStateFromArgument(event.text);
-    if(!sessionState) {
+    if (!sessionState) {
       return;
     }
     // Delete the message if it still exists.
@@ -89,9 +90,9 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   }
 
   // Eg finish 12
-  if(event.text.match(/^finish\s+\d+/)) {
+  if (event.text.match(/^finish\s+\d+/)) {
     const sessionState = await getSessionStateFromArgument(event.text);
-    if(!sessionState) {
+    if (!sessionState) {
       return;
     }
 
@@ -106,21 +107,21 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
       await postEphmeralErrorMessage(event.channel_id, event.user_id, "Could not find the original message to show the results.\nTry `/planningpoker show` to recreate it.");
       console.warn(error);
     }
-    
+
     return;
   }
 
   // Define locally here so we have access to the event.
   async function getSessionStateFromArgument(argument: string) {
     const sessionStateMatch = argument.match(/\d+/);
-    if(!sessionStateMatch) {
+    if (!sessionStateMatch) {
       throw new Error("Logic error");
     }
     const sessionStateIndex = parseInt(sessionStateMatch[0]);
     let sessionStates = await getStates();
     // TODO see above
     sessionStates = sessionStates.filter((sessionState) => sessionState.channelId === event.channel_id);
-    if(sessionStateIndex < 0 || sessionStateIndex > sessionStates.length - 1) {
+    if (sessionStateIndex < 0 || sessionStateIndex > sessionStates.length - 1) {
       await postErrorMessageToResponseUrl(event.response_url, `Number must be between 0 and ${sessionStates.length - 1}`);
       return undefined;
     }
@@ -130,7 +131,7 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
   // The main command.  Create a dialog to set the options.  Submitting will create a new session.
   try {
     let channelDefaults = await getChannelDefaults(event.channel_id);
-    if(!channelDefaults) {
+    if (!channelDefaults) {
       channelDefaults = {
         channelId: event.channel_id,
         // Use Fibonacci series as default.
@@ -138,9 +139,9 @@ export async function handlePlanningPokerCommand(event: SlashCommand): Promise<v
         participants: [event.user_id]
       };
     }
-    
+
     const blocks = createModalBlocks(event.text, channelDefaults);
-    const modalView: ModalView = {
+    const modalView: View = {
       type: "modal",
       title: {
         type: "plain_text",
