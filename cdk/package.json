@@ -20,7 +20,7 @@
   "devDependencies": {
     "@aws-cdk/assert": "^2.68.0",
     "@types/getenv": "^1.0.0",
-    "adm-zip": "^0.5.10",
+    "adm-zip": "^0.5.17",
     "brace-expansion": "^5.0.5",
     "dotenv": "^17.3.1",
     "glob-promise": "^6.0.3",
