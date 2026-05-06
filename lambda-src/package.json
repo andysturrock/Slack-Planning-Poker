@@ -7,7 +7,7 @@
     "test": "jest"
   },
   "dependencies": {
-    "@slack/bolt": "^4.7.1",
+    "@slack/bolt": "^4.7.2",
     "nanoid": "^5.1.11",
     "util": "^0.12.5"
   },
