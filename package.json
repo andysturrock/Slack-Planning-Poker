@@ -14,7 +14,7 @@
     "deploy": "npm run deploy --workspace=cdk"
   },
   "devDependencies": {
-    "@tsconfig/node22": "^22.0.0",
+    "@tsconfig/node22": "^22.0.6",
     "@types/jest": "^30.0.0",
     "@types/node": "^26.2.0",
     "@typescript-eslint/eslint-plugin": "^8.69.0",
